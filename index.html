@@ -202,4 +202,55 @@ refresh();loop();
   };
 })();
 </script>
+<script>
+(function(){
+  const oldFinale = finale;
+  finale = function(){
+    oldFinale();
+    hooray();
+  };
+
+  function hooray(){
+    try{
+      const ctx = new (window.AudioContext||window.webkitAudioContext)();
+      ctx.resume();
+      const t0 = ctx.currentTime;
+
+      // Fanfare: C E G high-C, then a long happy note
+      [[523,0],[659,.18],[784,.36],[1047,.54],[1047,.9],[1319,1.1]].forEach(([f,d],k)=>{
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'square'; o.frequency.value = f;
+        const len = k>=4 ? .6 : .16;
+        g.gain.setValueAtTime(.12, t0+d);
+        g.gain.exponentialRampToValueAtTime(.001, t0+d+len);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(t0+d); o.stop(t0+d+len);
+      });
+
+      // Cheering crowd: filtered noise with a few claps
+      const len = 2.5, buf = ctx.createBuffer(1, ctx.sampleRate*len, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for(let i=0;i<data.length;i++){
+        const clap = (Math.sin(i/ctx.sampleRate*40) > .6) ? 1 : .35;
+        data[i] = (Math.random()*2-1) * clap;
+      }
+      const src = ctx.createBufferSource(); src.buffer = buf;
+      const filt = ctx.createBiquadFilter(); filt.type = 'bandpass'; filt.frequency.value = 1800;
+      const g2 = ctx.createGain();
+      g2.gain.setValueAtTime(.001, t0+.3);
+      g2.gain.linearRampToValueAtTime(.25, t0+.8);
+      g2.gain.linearRampToValueAtTime(.001, t0+len);
+      src.connect(filt); filt.connect(g2); g2.connect(ctx.destination);
+      src.start(t0+.3);
+
+      // Spoken cheer (works on most phones and computers)
+      if('speechSynthesis' in window){
+        const u = new SpeechSynthesisUtterance('Hooray! Ho ho ho! Merry Christmas!');
+        u.pitch = 1.3; u.rate = .95;
+        setTimeout(()=>speechSynthesis.speak(u), 900);
+      }
+    }catch(e){}
+  }
+})();
+</script>
 </body></html>
