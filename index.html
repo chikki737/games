@@ -160,8 +160,8 @@ function g4(i){choice(i,'🧩 Last riddle!<br>I wear a big red hat, I have a whi
 function finale(){
   window.fin=1;busy=true;key.L=key.R=0;$('#ov').className='on r5';decorate(['🎄','🎁','🔔','🦌']);$('#rt').textContent='🎅 The Great Hall 🎅';$('#back').style.display='none';
   $('#card').innerHTML=`<div class="santa">🎅</div><div class="q">Ho ho ho! You opened all 5 doors! Come to my Christmas party!</div>
-  <div class="invite"><h3>🎄 Christmas Party 🎄</h3><p>📅 <b>15th December</b></p><p>🕕 <b>6:00 PM</b></p><p>📍 <b>Hayshed</b></p></div><button id="re">Play again 🔁</button>`;
-  $('#re').onclick=()=>location.reload();burst();setTimeout(burst,1500);
+  <div class="invite"><h3>🎄 Christmas Party 🎄</h3><p>📅 <b>15th December</b></p><p>🕕 <b>6:00 PM</b></p><p>📍 <b>Hayshed</b></p></div><button onclick="playHooray()">🔊 Hooray!</button> <button id="re">Play again 🔁</button>`;
+  $('#re').onclick=()=>location.reload();burst();setTimeout(burst,1500);playHooray();
 }
 // snow
 const cv=$('#snow'),cx=cv.getContext('2d');let W,H,fl=[];
@@ -203,54 +203,35 @@ refresh();loop();
 })();
 </script>
 <script>
-(function(){
-  let ctx;
-  // Unlock sound on the first tap, click or key press
-  function unlock(){
-    if(!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)();
-    if(ctx.state === 'suspended') ctx.resume();
-  }
-  ['pointerdown','touchend','click','keydown'].forEach(e =>
-    document.addEventListener(e, unlock, {passive:true}));
-
-  function tone(f, start, len, type, vol){
+function playHooray(){
+  const ctx = new (window.AudioContext||window.webkitAudioContext)();
+  ctx.resume();
+  const t = ctx.currentTime;
+  function tone(f, s, len, type, vol){
     const o = ctx.createOscillator(), g = ctx.createGain();
     o.type = type; o.frequency.value = f;
-    g.gain.setValueAtTime(vol, ctx.currentTime+start);
-    g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime+start+len);
+    g.gain.setValueAtTime(vol, t+s);
+    g.gain.exponentialRampToValueAtTime(.001, t+s+len);
     o.connect(g); g.connect(ctx.destination);
-    o.start(ctx.currentTime+start); o.stop(ctx.currentTime+start+len);
+    o.start(t+s); o.stop(t+s+len);
   }
-
-  function hooray(){
-    unlock();
-    if(!ctx) return;
-    [[523,0],[659,.2],[784,.4],[1047,.6],[784,.9],[1047,1.1],[1319,1.3]]
-      .forEach(([f,d],k) => tone(f, d, k>=5 ? .5 : .18, 'square', .2));
-    // cheering noise
-    const len = 2.5, buf = ctx.createBuffer(1, ctx.sampleRate*len, ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for(let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
-    const src = ctx.createBufferSource(); src.buffer = buf;
-    const f = ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1800;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(.001, ctx.currentTime);
-    g.gain.linearRampToValueAtTime(.35, ctx.currentTime+.6);
-    g.gain.linearRampToValueAtTime(.001, ctx.currentTime+len);
-    src.connect(f); f.connect(g); g.connect(ctx.destination); src.start();
-    // spoken cheer
-    if('speechSynthesis' in window){
-      const u = new SpeechSynthesisUtterance('Hooray! Ho ho ho! Merry Christmas!');
-      u.pitch = 1.3;
-      setTimeout(()=>speechSynthesis.speak(u), 900);
-    }
+  [[523,0],[659,.2],[784,.4],[1047,.6],[784,.9],[1047,1.1],[1319,1.3]]
+    .forEach(([f,d],k) => tone(f, d, k>=5 ? .5 : .18, 'square', .2));
+  const len = 2.5, buf = ctx.createBuffer(1, ctx.sampleRate*len, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const f = ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1800;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(.001, t);
+  g.gain.linearRampToValueAtTime(.35, t+.6);
+  g.gain.linearRampToValueAtTime(.001, t+len);
+  src.connect(f); f.connect(g); g.connect(ctx.destination); src.start();
+  if('speechSynthesis' in window){
+    const u = new SpeechSynthesisUtterance('Hooray! Ho ho ho! Merry Christmas!');
+    u.pitch = 1.3;
+    setTimeout(()=>speechSynthesis.speak(u), 900);
   }
-
-  // Play when Santa's hall appears
-  const title = document.getElementById('rt');
-  new MutationObserver(() => {
-    if(title.textContent.includes('Great Hall')) hooray();
-  }).observe(title, {childList:true, characterData:true, subtree:true});
-})();
+}
 </script>
 </body></html>
