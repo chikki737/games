@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Santa’s Door Adventure</title>
+<style>
+:root{color-scheme:dark;--gold:#ffd36b;--red:#d7263d;--green:#1f8a4c;--ink:#fff8ee}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:'Trebuchet MS',Arial,sans-serif;color:var(--ink);background:#0b1633;user-select:none}
+#game{position:fixed;inset:0;overflow:hidden;background:linear-gradient(#0b1633,#27476e 75%)}
+#bg{position:absolute;bottom:90px;left:0;white-space:nowrap;font-size:64px;opacity:.3;letter-spacing:34px}
+#stars{position:absolute;top:0;left:0;right:0;height:50%;font-size:14px;opacity:.7}
+#world{position:absolute;left:0;top:0;bottom:0;width:3000px}
+#ground{position:absolute;left:0;right:0;bottom:0;height:90px;background:linear-gradient(#fff,#cfe3f2);border-top:6px solid #fff}
+.pr{position:absolute;bottom:84px;font-size:54px;filter:drop-shadow(0 4px 4px #0006)}
+.door{position:absolute;bottom:90px;width:96px;height:150px;margin-left:-48px;border-radius:48px 48px 0 0;border:6px solid #5a3515;background:linear-gradient(#b8283a,#7a1620);cursor:pointer;text-align:center;font-size:30px;padding-top:34px;transition:.3s}
+.door b{display:block;font-size:34px;color:var(--gold)}
+.door::before{content:"🎄";position:absolute;top:-34px;left:50%;transform:translateX(-50%);font-size:34px}
+.door.lock{filter:grayscale(.9) brightness(.6)}
+.door.next{box-shadow:0 0 28px 8px #ffd36bcc;animation:pulse 1s infinite}
+.door.ok{background:linear-gradient(#2a9d5c,#145c34)}
+@keyframes pulse{50%{transform:scale(1.06)}}
+.arrow{position:absolute;bottom:250px;margin-left:-20px;font-size:36px;animation:bob .7s infinite}
+@keyframes bob{50%{transform:translateY(-10px)}}
+#pl{position:absolute;bottom:80px;font-size:64px;margin-left:-32px;filter:drop-shadow(0 5px 4px #0007)}
+#pl.walk span{display:inline-block;animation:hop .3s infinite}
+@keyframes hop{50%{transform:translateY(-10px) rotate(6deg)}}
+#hud{position:absolute;top:calc(8px + env(safe-area-inset-top,0px));left:0;right:0;text-align:center;pointer-events:none;z-index:5}
+#hud h1{margin:0;font-size:clamp(18px,4.5vw,28px);color:var(--gold);text-shadow:0 2px 6px #000}
+.dots{display:flex;justify-content:center;gap:8px;margin:6px 0}
+.dot{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#0008;border:2px solid var(--gold);font-size:14px}
+.dot.d{background:var(--green)}
+#hint{font-size:15px;text-shadow:0 2px 4px #000}
+#toast{position:fixed;top:calc(120px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:#000b;border:2px solid var(--gold);padding:8px 16px;border-radius:20px;z-index:6;display:none;font-size:17px;text-align:center}
+#ctl{position:fixed;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-between;align-items:center;padding:0 16px;z-index:6}
+button{font:inherit;cursor:pointer;border:0;border-radius:16px;background:var(--red);color:#fff;font-weight:bold;box-shadow:0 4px 0 #7a1020;padding:12px 20px;font-size:20px}
+button:active{transform:translateY(3px)}
+.arr{width:72px;height:72px;font-size:32px;padding:0;margin-right:10px;background:#1f5fa8;box-shadow:0 4px 0 #123a6a}
+#open{display:none;background:var(--green);box-shadow:0 4px 0 #0f4f2a;animation:pulse 1s infinite}
+canvas{position:fixed;inset:0;pointer-events:none;z-index:4}
+#ov{position:fixed;inset:0;z-index:20;display:none;overflow:auto;align-items:center;justify-content:center;padding:16px;text-align:center}
+#ov.on{display:flex;animation:fin .5s}
+@keyframes fin{from{opacity:0;transform:scale(.9)}}
+.r0{background:linear-gradient(#0d1b3a,#27476e 60%,#e8f1f8 60%)}
+.r1{background:linear-gradient(#4a1a14,#8a3a22 65%,#5a3a22 65%)}
+.r2{background:linear-gradient(#123a2a,#1f6b48 65%,#7a5430 65%)}
+.r3{background:linear-gradient(#5a1f45,#b04a7a 65%,#f6dfe8 65%)}
+.r4{background:linear-gradient(#050a24,#1b2a66 65%,#0f3d2a 65%)}
+.r5{background:radial-gradient(circle at 50% 35%,#7a1020,#2a0610 75%)}
+.deco{position:fixed;font-size:clamp(30px,7vw,60px);animation:bob 2.5s infinite}
+.wrap{position:relative;max-width:520px;width:100%}
+.wrap h2{margin:0 0 8px;color:var(--gold);font-size:clamp(20px,5vw,28px);text-shadow:0 2px 6px #000}
+.card{background:#140a14cc;border:3px solid var(--gold);border-radius:20px;padding:16px;margin-bottom:10px}
+.q{font-size:clamp(19px,4.8vw,24px);line-height:1.4;margin:6px 0 12px}
+.opts{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.opts button{font-size:clamp(20px,5vw,26px);padding:14px 20px}
+.opts button.no{opacity:.4}
+.big{font-size:60px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cd{height:90px;font-size:44px;background:#1f5fa8;box-shadow:0 4px 0 #123a6a;padding:0}
+.cd.up{background:#fff;box-shadow:0 4px 0 #bbb}
+#sky2{position:relative;height:230px;overflow:hidden;border-radius:14px;background:linear-gradient(#08123a,#1b2a66)}
+.fl{position:absolute;top:-50px;font-size:46px;cursor:pointer;animation:fall 3.4s linear forwards}
+@keyframes fall{to{top:240px}}
+.msg{min-height:26px;font-weight:bold;color:var(--gold)}
+.santa{font-size:clamp(90px,22vw,140px);animation:bob 1.6s infinite}
+.invite{background:linear-gradient(#fff8ee,#f4dfc0);color:#3a1010;border:4px double var(--red);border-radius:14px;padding:12px;margin-bottom:10px;box-shadow:0 0 30px #ffd36b88}
+.invite h3{margin:0 0 4px;color:var(--red);font-size:22px}.invite p{margin:3px 0;font-size:20px}
+</style></head><body>
+<div id="game"><div id="stars">✨ ⭐ ✨ ⭐ ✨ ⭐ ✨ ⭐ ✨ ⭐ ✨ ⭐ ✨ ⭐ ✨ ⭐ ✨ ⭐ ✨ ⭐ ✨ ⭐ ✨ ⭐ ✨ ⭐ ✨ ⭐</div><div id="bg"></div>
+<div id="world"><div id="ground"></div><div id="pl"><span>🧝</span></div></div></div>
+<canvas id="snow"></canvas>
+<div id="hud"><h1>🎄 Santa’s Door Adventure 🎄</h1><div class="dots" id="dots"></div><div id="hint"></div></div>
+<div id="toast"></div>
+<div id="ctl"><div><button class="arr" id="L">◀</button><button class="arr" id="R">▶</button></div><button id="open">🚪 Open!</button></div>
+<div id="ov"><div id="decos"></div><div class="wrap"><h2 id="rt"></h2><div class="card" id="card"></div><button id="back">🔙 Back to the street</button></div></div>
+<script>
+const $=s=>document.querySelector(s),WW=3000,DX=[520,920,1320,1720,2120],SX=2620;
+const R=[
+{n:'The Snowy Porch',c:'r0',d:['⛄','🌲','❄️','🎁']},{n:'The Cosy Living Room',c:'r1',d:['🧦','🕯️','🔥','🍪']},
+{n:'The Elves’ Workshop',c:'r2',d:['🧝','🧸','🔨','🎁']},{n:'The Starry Sky Room',c:'r4',d:['⭐','🌟','🔔','✨']},
+{n:'The Candy Kitchen',c:'r3',d:['🍭','🍬','🎂','🧁']}];
+let px=120,dir=1,key={L:0,R:0},target=null,busy=false,done=[0,0,0,0,0],timer,toastT;
+const world=$('#world'),pl=$('#pl'),doors=[];
+// scenery
+let bg='';for(let i=0;i<30;i++)bg+=['🏠','🌲','🎄','🏡'][i%4];$('#bg').textContent=bg;
+[300,720,1120,1520,1920,2350,2800].forEach((x,i)=>world.insertAdjacentHTML('beforeend',`<div class="pr" style="left:${x}px">${['⛄','🎄','🏮','🎁','⛄','🎄','🏮'][i]}</div>`));
+DX.forEach((x,i)=>{const d=document.createElement('div');d.className='door';d.style.left=x+'px';d.onclick=()=>pick(i);world.appendChild(d);doors.push(d)});
+world.insertAdjacentHTML('beforeend',`<div class="pr" id="sa" style="left:${SX}px;font-size:100px;margin-left:-50px;cursor:pointer" onclick="pickSanta()">🎅</div><div class="pr" style="left:${SX+90}px;font-size:40px;bottom:90px">🎁🎁</div>`);
+function nextI(){return done.indexOf(0)}
+function refresh(){
+  const n=nextI();doors.forEach((d,i)=>{d.className='door '+(done[i]?'ok':i==n?'next':'lock');d.innerHTML=`${done[i]?'✅':i==n?'🚪':'🔒'}<b>${i+1}</b>`});
+  document.querySelectorAll('.arrow').forEach(a=>a.remove());
+  const ax=n<0?SX:DX[n];world.insertAdjacentHTML('beforeend',`<div class="arrow" style="left:${ax}px;bottom:${n<0?220:250}px">⬇️</div>`);
+  $('#dots').innerHTML=done.map((d,i)=>`<div class="dot ${d?'d':''}">${d?'✓':i+1}</div>`).join('');
+  $('#hint').textContent=n<0?'🎅 All doors open! Walk to Santa!':'Walk with ◀ ▶ or tap a door!';
+}
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>e.style.display='none',2200)}
+function pick(i){
+  if(busy)return;if(done[i])return toast('✅ You already did this one!');
+  if(i!=nextI())return toast('🔒 Open door '+(nextI()+1)+' first!');
+  target={x:DX[i],i};
+}
+function pickSanta(){if(busy)return;if(nextI()>=0)toast('🎅 Open all 5 doors first!');else target={x:SX-70,s:1}}
+// movement
+let cam=0;
+function near(){return DX.findIndex((x,i)=>Math.abs(px-x)<60&&i==nextI())}
+function loop(){
+  const W=innerWidth;let m=0;
+  if(!busy){
+    if(key.L)m=-1;if(key.R)m=1;
+    if(key.L||key.R)target=null;
+    if(target){const d=target.x-px;if(Math.abs(d)<6){const t=target;target=null;if(t.s)finale();else openDoor(t.i)}else m=Math.sign(d)}
+    px=Math.max(40,Math.min(WW-60,px+m*5));
+  }
+  if(m)dir=m;pl.style.left=px+'px';pl.firstChild.style.transform=`scaleX(${-dir})`;pl.classList.toggle('walk',!!m);
+  cam=Math.max(0,Math.min(WW-W,px-W/2));world.style.transform=`translateX(${-cam}px)`;
+  $('#bg').style.transform=`translateX(${-cam*.5}px)`;
+  const n=near();$('#open').style.display=(n>=0&&!busy)?'block':'none';if(n>=0)$('#open').textContent='🚪 Open door '+(n+1)+'!';
+  if(!busy&&nextI()<0&&Math.abs(px-(SX-70))<30&&!window.fin)finale();
+  requestAnimationFrame(loop);
+}
+['L','R'].forEach(k=>{const b=$('#'+k);const on=e=>{e.preventDefault();key[k]=1},off=()=>key[k]=0;b.addEventListener('pointerdown',on);['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,off))});
+addEventListener('keydown',e=>{const k=e.key;if(k=='ArrowLeft'||k=='a')key.L=1;if(k=='ArrowRight'||k=='d')key.R=1;if((k==' '||k=='Enter')&&!busy){const n=near();if(n>=0)openDoor(n)}});
+addEventListener('keyup',e=>{const k=e.key;if(k=='ArrowLeft'||k=='a')key.L=0;if(k=='ArrowRight'||k=='d')key.R=0});
+$('#open').onclick=()=>{const n=near();if(n>=0)openDoor(n)};
+// rooms
+function decorate(l){const p=[[5,18],[86,18],[6,64],[86,62]];$('#decos').innerHTML=l.map((e,i)=>`<div class="deco" style="left:${p[i][0]}%;top:${p[i][1]}%;animation-delay:${i*.4}s">${e}</div>`).join('')}
+function openDoor(i){
+  busy=true;key.L=key.R=0;const r=R[i];$('#ov').className='on '+r.c;$('#rt').textContent=`Door ${i+1}: ${r.n}`;$('#back').style.display='';decorate(r.d);[g0,g1,g2,g3,g4][i](i);
+}
+function closeRoom(){clearInterval(timer);$('#ov').className='';busy=false}
+$('#back').onclick=closeRoom;
+function win(i){
+  clearInterval(timer);$('#back').style.display='none';burst();
+  $('#card').innerHTML=`<div class="big">🎉⭐🎉</div><div class="q">Hooray! You did it!</div><button id="nx">Next ➡️</button>`;
+  $('#nx').onclick=()=>{done[i]=1;closeRoom();refresh();if(nextI()<0)toast('🎅 Go and find Santa!')};
+}
+function choice(i,q,o,ok,pre=''){
+  $('#card').innerHTML=`${pre}<div class="q">${q}</div><div class="opts">${o.map((t,k)=>`<button data-k="${k}">${t}</button>`).join('')}</div><div class="msg" id="m"></div>`;
+  document.querySelectorAll('.opts button').forEach(b=>b.onclick=()=>{if(+b.dataset.k===ok)win(i);else{b.disabled=true;b.classList.add('no');$('#m').textContent='Oops! Try another one 😊'}});
+}
+function g0(i){choice(i,'🧩 Riddle time!<br>I am white, cold and fluffy. I fall from the sky in winter. What am I?',['❄️ Snow','☀️ Sun','🌧️ Rain'],0)}
+function g1(i){ // memory match
+  const e=['🎅','🎄','🎁','🎅','🎄','🎁'].sort(()=>Math.random()-.5);let f=null,lock=0,m=0;
+  $('#card').innerHTML=`<div class="q">🃏 Find the matching pairs!</div><div class="grid">${e.map((x,k)=>`<button class="cd" data-k="${k}">❓</button>`).join('')}</div>`;
+  const B=[...document.querySelectorAll('.cd')];
+  B.forEach(b=>b.onclick=()=>{if(lock||b.classList.contains('up'))return;b.classList.add('up');b.textContent=e[b.dataset.k];
+    if(!f){f=b;return}
+    if(f.textContent==b.textContent){m+=2;f=null;if(m==6)setTimeout(()=>win(i),600)}
+    else{lock=1;const a=f;f=null;setTimeout(()=>{a.classList.remove('up');b.classList.remove('up');a.textContent=b.textContent='❓';lock=0},800)}});
+}
+function g2(i){choice(i,'How many presents can you count?','3,4,5'.split(',').map(x=>'🔢 '+x),1,'<div class="big">🎁 🎁 🎁 🎁</div>')}
+function g3(i){ // catch stars
+  let n=0;$('#card').innerHTML=`<div class="q">Tap 5 falling stars ⭐ to light up the sky!</div><div id="sky2"></div><div class="q" id="cnt">0 / 5</div>`;
+  timer=setInterval(()=>{const s=document.createElement('span');s.className='fl';s.textContent=['⭐','🌟'][n%2];s.style.left=Math.random()*80+5+'%';
+    s.onpointerdown=()=>{s.remove();n++;$('#cnt').textContent=n+' / 5';if(n>=5)win(i)};s.onanimationend=()=>s.remove();$('#sky2').appendChild(s)},650);
+}
+function g4(i){choice(i,'🧩 Last riddle!<br>I wear a big red hat, I have a white beard, and I say “Ho Ho Ho!” Who am I?',['🎅 Santa','🐰 Bunny','🤡 Clown'],0)}
+// finale
+function finale(){
+  window.fin=1;busy=true;key.L=key.R=0;$('#ov').className='on r5';decorate(['🎄','🎁','🔔','🦌']);$('#rt').textContent='🎅 The Great Hall 🎅';$('#back').style.display='none';
+  $('#card').innerHTML=`<div class="santa">🎅</div><div class="q">Ho ho ho! You opened all 5 doors! Come to my Christmas party!</div>
+  <div class="invite"><h3>🎄 Christmas Party 🎄</h3><p>📅 <b>15th December</b></p><p>🕕 <b>6:00 PM</b></p><p>📍 <b>Hayshed</b></p></div><button id="re">Play again 🔁</button>`;
+  $('#re').onclick=()=>location.reload();burst();setTimeout(burst,1500);
+}
+// snow
+const cv=$('#snow'),cx=cv.getContext('2d');let W,H,fl=[];
+function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight}rs();addEventListener('resize',rs);
+for(let i=0;i<80;i++)fl.push({x:Math.random()*W,y:Math.random()*H,r:1+Math.random()*3,s:.4+Math.random()*1.2});
+function burst(){for(let i=0;i<70;i++)fl.push({x:Math.random()*W,y:-10-Math.random()*200,r:3+Math.random()*4,s:2+Math.random()*3,c:['#ffd36b','#d7263d','#2ecc71','#fff'][i%4],f:1})}
+(function sn(){cx.clearRect(0,0,W,H);for(let i=fl.length-1;i>=0;i--){const f=fl[i];cx.fillStyle=f.c||'rgba(255,255,255,.85)';cx.beginPath();cx.arc(f.x+Math.sin(f.y/30)*10,f.y,f.r,0,7);cx.fill();f.y+=f.s;if(f.y>H+10){if(f.f)fl.splice(i,1);else{f.y=-10;f.x=Math.random()*W}}}requestAnimationFrame(sn)})();
+refresh();loop();
+</script></body></html>
