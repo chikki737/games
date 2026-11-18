@@ -170,4 +170,33 @@ for(let i=0;i<80;i++)fl.push({x:Math.random()*W,y:Math.random()*H,r:1+Math.rando
 function burst(){for(let i=0;i<70;i++)fl.push({x:Math.random()*W,y:-10-Math.random()*200,r:3+Math.random()*4,s:2+Math.random()*3,c:['#ffd36b','#d7263d','#2ecc71','#fff'][i%4],f:1})}
 (function sn(){cx.clearRect(0,0,W,H);for(let i=fl.length-1;i>=0;i--){const f=fl[i];cx.fillStyle=f.c||'rgba(255,255,255,.85)';cx.beginPath();cx.arc(f.x+Math.sin(f.y/30)*10,f.y,f.r,0,7);cx.fill();f.y+=f.s;if(f.y>H+10){if(f.f)fl.splice(i,1);else{f.y=-10;f.x=Math.random()*W}}}requestAnimationFrame(sn)})();
 refresh();loop();
+<button id="music" style="position:fixed;top:calc(8px + env(safe-area-inset-top,0px));right:10px;z-index:30;font-size:24px;padding:8px 12px">🔇</button>
+(function(){
+  const N={C:261.63,D:293.66,E:329.63,F:349.23,G:392};
+  const tune=[['E',1],['E',1],['E',2],['E',1],['E',1],['E',2],['E',1],['G',1],['C',1.5],['D',.5],['E',4],
+              ['F',1],['F',1],['F',1.5],['F',.5],['F',1],['E',1],['E',1],['E',.5],['E',.5],['E',1],['D',1],['D',1],['E',1],['D',2],['G',2]];
+  let ctx, on=false, timer, i=0;
+  const btn=document.getElementById('music');
+  function beep(freq,dur){
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type='triangle'; o.frequency.value=freq;
+    g.gain.setValueAtTime(.15,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime+dur);
+  }
+  function step(){
+    if(!on) return;
+    const [n,b]=tune[i%tune.length];
+    beep(N[n],b*0.3);
+    i++;
+    timer=setTimeout(step,b*300+(i%tune.length===0?800:0));
+  }
+  btn.onclick=function(){
+    if(!ctx) ctx=new (window.AudioContext||window.webkitAudioContext)();
+    on=!on;
+    if(on){ctx.resume();step();btn.textContent='🎵';}
+    else{clearTimeout(timer);btn.textContent='🔇';}
+  };
+})();
 </script></body></html>
